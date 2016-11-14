@@ -53,7 +53,7 @@ void ANetTestCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAction("Spawn", IE_Pressed, this, &ANetTestCharacter::SpawnThing);
+	PlayerInputComponent->BindAction("Spawn", IE_Pressed, this, &ANetTestCharacter::OnSpawnInput);
 
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ANetTestCharacter::MoveForward);
@@ -75,14 +75,19 @@ void ANetTestCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ANetTestCharacter::OnResetVR);
 }
 
-void ANetTestCharacter::SpawnThing()
+void ANetTestCharacter::OnSpawnInput()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("Try to spawn a thing!")));
+	SpawnThing();
+}
 
-	//TODO: Network spawning a thing? Maybe like a fireball projectile?
-	//if (IsRunningDedicatedServer())
-	//{
-		//UE_LOG(LogTemp, Warning, TEXT("Server, spawn a thing!"));
+void ANetTestCharacter::SpawnThing_Implementation()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("spawn thing implementation hit, but velociiity")));
+
+	if (Role == ROLE_Authority)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Server, spawn a thing!"));
 		//How to get this to happen from the master over net?
 		//Spawn Code
 		FVector Location = this->GetActorLocation();
@@ -95,9 +100,16 @@ void ANetTestCharacter::SpawnThing()
 			SpawnParams.Instigator = this;
 
 			AActor* actor = World->SpawnActor<AActor>(WhatToSpawn, Location, Rotation, SpawnParams);
+			this->GetCharacterMovement()->Velocity += FVector::UpVector * 250.0f;
 		}
-	//}
+	}
 }
+
+bool ANetTestCharacter::SpawnThing_Validate()
+{
+	return true;
+}
+
 
 
 void ANetTestCharacter::OnResetVR()

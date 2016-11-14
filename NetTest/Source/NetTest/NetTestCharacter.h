@@ -31,7 +31,6 @@ public:
 
 protected:
 
-	void SpawnThing();
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
@@ -66,6 +65,12 @@ protected:
 	// End of APawn interface
 
 public:
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void SpawnThing();
+
+	void OnSpawnInput();
+
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
