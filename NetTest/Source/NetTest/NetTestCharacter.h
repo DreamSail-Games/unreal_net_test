@@ -27,7 +27,7 @@ public:
 	float BaseLookUpRate;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
-	UBlueprint* BlueprintToSpawn;
+	TSubclassOf<class AActor> WhatToSpawn;
 
 protected:
 

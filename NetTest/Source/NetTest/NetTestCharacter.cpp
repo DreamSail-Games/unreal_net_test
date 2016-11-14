@@ -82,19 +82,19 @@ void ANetTestCharacter::SpawnThing()
 	//TODO: Network spawning a thing? Maybe like a fireball projectile?
 	//if (IsRunningDedicatedServer())
 	//{
-		UE_LOG(LogTemp, Warning, TEXT("Server, spawn a thing!"));
+		//UE_LOG(LogTemp, Warning, TEXT("Server, spawn a thing!"));
 		//How to get this to happen from the master over net?
 		//Spawn Code
 		FVector Location = this->GetActorLocation();
 		FRotator Rotation = FRotator::ZeroRotator;
-		UClass* ClassRef  = (UClass*)BlueprintToSpawn->GeneratedClass;
+
 		UWorld* const World = GetWorld();
 		if (World)
 		{
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Instigator = this;
 
-			AActor* SpawnedActor = World->SpawnActor<AActor>(ClassRef, Location, Rotation, SpawnParams);
+			AActor* actor = World->SpawnActor<AActor>(WhatToSpawn, Location, Rotation, SpawnParams);
 		}
 	//}
 }
