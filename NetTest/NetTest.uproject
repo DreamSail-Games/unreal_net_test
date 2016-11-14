@@ -1,0 +1,13 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{703FD356-4DD5-D692-1D15-F0B7D46E6948}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "NetTest",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
