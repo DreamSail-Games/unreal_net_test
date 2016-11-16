@@ -1,6 +1,7 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "GameFramework/Character.h"
+#include "Runtime/Online/HTTP/Public/Http.h"
 #include "NetTestCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -66,10 +67,19 @@ protected:
 
 public:
 
+	FHttpModule* HttpModule;
+
+	void SendServerHeartbeat();
+	void ListServers();
+	void OnHttpRequestReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
 	UFUNCTION(Server, Reliable, WithValidation)
 	void SpawnThing();
 
 	void OnSpawnInput();
+
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

@@ -4,12 +4,15 @@
 #include "Kismet/HeadMountedDisplayFunctionLibrary.h"
 #include "NetTestCharacter.h"
 #include "Engine.h"
+#include "Json.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ANetTestCharacter
 
 ANetTestCharacter::ANetTestCharacter()
 {
+	HttpModule = &FHttpModule::Get();
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -41,6 +44,112 @@ ANetTestCharacter::ANetTestCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+}
+
+void ANetTestCharacter::BeginPlay()
+{
+	
+	ListServers();
+
+	Super::BeginPlay();
+}
+
+
+void ANetTestCharacter::SendServerHeartbeat()
+{
+	if (Role == ROLE_Authority)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Server, send heartbeat!"));
+
+		const FString BASE_URL = TEXT("https://unreal-net-test-master-server.herokuapp.com");
+		const FString GAME_SERVER_HEARTBEAT = TEXT("/game-server-heartbeat");
+		const FString LIST_SERVER = TEXT("/list-server");
+
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("creating http request")));
+
+		TSharedRef<IHttpRequest> Request = HttpModule->CreateRequest();
+		Request->OnProcessRequestComplete().BindUObject(this, &ANetTestCharacter::OnHttpRequestReceived);
+		Request->SetURL(BASE_URL + GAME_SERVER_HEARTBEAT);
+		Request->SetVerb("POST");
+		Request->SetHeader(TEXT("User-Agent"), TEXT("X-UnrealEngine-Agent"));
+		Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+		Request->SetContentAsString(TEXT("{\"ip\":\"0.0.0.0\",\"port\":7777}"));
+
+		Request->ProcessRequest();
+
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("HTTP response sent!")));
+	}
+}
+
+void ANetTestCharacter::ListServers()
+{
+	if (Role == ROLE_Authority)
+	{
+
+		const FString BASE_URL = TEXT("https://unreal-net-test-master-server.herokuapp.com");
+		const FString GAME_SERVER_HEARTBEAT = TEXT("/game-server-heartbeat");
+		const FString LIST_SERVER = TEXT("/list-server");
+
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("creating http request")));
+
+		TSharedRef<IHttpRequest> Request = HttpModule->CreateRequest();
+		Request->OnProcessRequestComplete().BindUObject(this, &ANetTestCharacter::OnHttpRequestReceived);
+		Request->SetURL(BASE_URL + LIST_SERVER);
+		Request->SetVerb("GET");
+		Request->SetHeader(TEXT("User-Agent"), TEXT("X-UnrealEngine-Agent"));
+		Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+
+		Request->ProcessRequest();
+
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("HTTP response sent!")));
+	}
+}
+
+
+void ANetTestCharacter::OnHttpRequestReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("HTTP Resonse got!")));
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, Response->GetContentAsString() );
+	UE_LOG(LogTemp, Warning, TEXT("Got http response"));
+
+	//Create a pointer to hold the json serialized data
+	TSharedPtr<FJsonObject> JsonObject;
+
+	//Create a reader pointer to read the json data
+	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+
+	//Deserialize the json data given Reader and the actual object to deserialize
+	if (FJsonSerializer::Deserialize(Reader, JsonObject))
+	{
+		//Output it to the engine
+		TArray<TSharedPtr<FJsonValue>> serverList = JsonObject->GetArrayField(TEXT("serverList"));
+
+		FString openCmd = "open ";
+		FString ipToUse = "";
+		for (int i = 0; i < serverList.Num(); i++)
+		{
+			TSharedPtr<FJsonObject> serverObj = serverList[i]->AsObject();
+			FString ipAddr					  = serverObj->GetStringField(TEXT("ip"));
+			if (ipAddr.Len() > 0)
+			{
+				ipToUse = ipAddr;
+				openCmd += ipAddr;
+			}
+		}
+
+		const TCHAR* charArray = *openCmd;
+
+		if (!ipToUse.Equals(""))
+		{
+			GEngine->AddOnScreenDebugMessage(1, 2.0f, FColor::Green, ipToUse);
+
+			//HACK
+			//Find out how to do this WITHOUT a hacky console command. 
+			GetWorld()->Exec(GetWorld(), charArray); 
+			//END HACK
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -85,7 +194,7 @@ void ANetTestCharacter::SpawnThing_Implementation()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("spawn thing implementation hit, but velociiity")));
 
-	if (Role == ROLE_Authority)
+	if ( Role == ROLE_Authority )
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Server, spawn a thing!"));
 		//How to get this to happen from the master over net?
