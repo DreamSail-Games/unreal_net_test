@@ -125,29 +125,20 @@ void ANetTestCharacter::OnHttpRequestReceived(FHttpRequestPtr Request, FHttpResp
 		//Output it to the engine
 		TArray<TSharedPtr<FJsonValue>> serverList = JsonObject->GetArrayField(TEXT("serverList"));
 
-		FString openCmd = "open ";
-		FString ipToUse = "";
+		FString ipAddrToUse = "";
 		for (int i = 0; i < serverList.Num(); i++)
 		{
 			TSharedPtr<FJsonObject> serverObj = serverList[i]->AsObject();
 			FString ipAddr					  = serverObj->GetStringField(TEXT("ip"));
 			if (ipAddr.Len() > 0)
 			{
-				ipToUse = ipAddr;
-				openCmd += ipAddr;
+				ipAddrToUse = ipAddr;
 			}
 		}
 
-		const TCHAR* charArray = *openCmd;
-
-		if (!ipToUse.Equals(""))
+		if (!ipAddrToUse.Equals(""))
 		{
-			GEngine->AddOnScreenDebugMessage(1, 2.0f, FColor::Green, ipToUse);
-
-			//HACK
-			//Find out how to do this WITHOUT a hacky console command. 
-			GetWorld()->Exec(GetWorld(), charArray); 
-			//END HACK
+			ConnectToServerWithIP(ipAddrToUse);
 		}
 	}
 }
@@ -186,8 +177,29 @@ void ANetTestCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerI
 
 void ANetTestCharacter::OnSpawnInput()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("Try to spawn a thing!")));
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("Spawn a thing!")));
 	SpawnThing();
+}
+
+void ANetTestCharacter::ConnectToServerWithIP(FString ipAddr)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("Try to connect!")));
+
+	FString openCmd = "open " + ipAddr;
+
+	if ( !ipAddr.Equals("") )
+	{
+		GEngine->AddOnScreenDebugMessage(1, 2.0f, FColor::Green, openCmd);
+
+		//HACK
+		//Find out how to do this WITHOUT a hacky console command. 
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+		if (PlayerController != NULL)
+		{
+			PlayerController->ConsoleCommand(openCmd, true);
+		}
+		//END HACK
+	}
 }
 
 void ANetTestCharacter::SpawnThing_Implementation()
