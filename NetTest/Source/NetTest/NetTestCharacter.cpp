@@ -220,6 +220,7 @@ void ANetTestCharacter::SpawnThing_Implementation()
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Instigator = this;
 
+
 			AActor* actor = World->SpawnActor<AActor>(WhatToSpawn, Location, Rotation, SpawnParams);
 			this->GetCharacterMovement()->Velocity += FVector::UpVector * 250.0f;
 		}
