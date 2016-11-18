@@ -14,7 +14,7 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Vehicles/WheeledVehicleMovementComponent4W.h"
 #include "Engine/SkeletalMesh.h"
-
+#include "Engine/EngineTypes.h"
 
 // Needed for VR Headset
 #include "Engine.h"
@@ -22,11 +22,14 @@
 #include "IHeadMountedDisplay.h"
 #endif // HMD_MODULE_INCLUDED
 
+
 const FName ATP_VehicleAdvPawn::LookUpBinding("LookUp");
 const FName ATP_VehicleAdvPawn::LookRightBinding("LookRight");
 const FName ATP_VehicleAdvPawn::EngineAudioRPM("RPM");
 
 #define LOCTEXT_NAMESPACE "VehiclePawn"
+
+bool ATP_VehicleAdvPawn::hasCalledConnect = false;
 
 ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 {
@@ -48,6 +51,7 @@ ATP_VehicleAdvPawn::ATP_VehicleAdvPawn()
 	NonSlipperyMaterial = NonSlipperyMat.Object;
 
 	UWheeledVehicleMovementComponent4W* Vehicle4W = CastChecked<UWheeledVehicleMovementComponent4W>(GetVehicleMovement());
+
 
 	check(Vehicle4W->WheelSetups.Num() == 4);
 
@@ -196,7 +200,7 @@ void ATP_VehicleAdvPawn::ConnectToServerWithIP(FString ipAddr)
 
 void ATP_VehicleAdvPawn::ListServers()
 {
-	if (Role == ROLE_Authority)
+	if ( Role == ROLE_Authority && !IsRunningDedicatedServer() )
 	{
 
 		const FString BASE_URL = TEXT("https://unreal-net-test-master-server.herokuapp.com");
@@ -221,36 +225,43 @@ void ATP_VehicleAdvPawn::ListServers()
 
 void ATP_VehicleAdvPawn::OnHttpRequestReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("HTTP Resonse got!")));
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, Response->GetContentAsString());
-	UE_LOG(LogTemp, Warning, TEXT("Got http response"));
-
-	//Create a pointer to hold the json serialized data
-	TSharedPtr<FJsonObject> JsonObject;
-
-	//Create a reader pointer to read the json data
-	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
-
-	//Deserialize the json data given Reader and the actual object to deserialize
-	if (FJsonSerializer::Deserialize(Reader, JsonObject))
+	if (Role == ROLE_Authority && !IsRunningDedicatedServer())
 	{
-		//Output it to the engine
-		TArray<TSharedPtr<FJsonValue>> serverList = JsonObject->GetArrayField(TEXT("serverList"));
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("HTTP Resonse got!")));
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, Response->GetContentAsString());
+		UE_LOG(LogTemp, Warning, TEXT("Got http response"));
 
-		FString ipAddrToUse = "";
-		for (int i = 0; i < serverList.Num(); i++)
+		//Create a pointer to hold the json serialized data
+		TSharedPtr<FJsonObject> JsonObject;
+
+		//Create a reader pointer to read the json data
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+
+		//Deserialize the json data given Reader and the actual object to deserialize
+		if (FJsonSerializer::Deserialize(Reader, JsonObject))
 		{
-			TSharedPtr<FJsonObject> serverObj = serverList[i]->AsObject();
-			FString ipAddr = serverObj->GetStringField(TEXT("ip"));
-			if (ipAddr.Len() > 0)
+			//Output it to the engine
+			TArray<TSharedPtr<FJsonValue>> serverList = JsonObject->GetArrayField(TEXT("serverList"));
+
+			FString ipAddrToUse = "";
+			for (int i = 0; i < serverList.Num(); i++)
 			{
-				ipAddrToUse = ipAddr;
+				TSharedPtr<FJsonObject> serverObj = serverList[i]->AsObject();
+				FString ipAddr = serverObj->GetStringField(TEXT("ip"));
+				if (ipAddr.Len() > 0)
+				{
+					ipAddrToUse = ipAddr;
+				}
 			}
-		}
 
-		if (!ipAddrToUse.Equals(""))
-		{
-			ConnectToServerWithIP(ipAddrToUse);
+			if (!ipAddrToUse.Equals(""))
+			{
+				if (!hasCalledConnect)
+				{
+					hasCalledConnect = true;
+					ConnectToServerWithIP(ipAddrToUse);
+				}
+			}
 		}
 	}
 }
@@ -365,7 +376,7 @@ void ATP_VehicleAdvPawn::Tick(float Delta)
 void ATP_VehicleAdvPawn::BeginPlay()
 {
 
-	ListServers();
+	//ListServers();
 
 	Super::BeginPlay();
 
@@ -387,14 +398,38 @@ void ATP_VehicleAdvPawn::BeginPlay()
 
 void ATP_VehicleAdvPawn::OnResetVR()
 {
-#if HMD_MODULE_INCLUDED
-	if (GEngine->HMDDevice.IsValid())
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("reset! 14")));
+
+
+
+	//this->GetVehicleMovementComponent()->UpdatedComponent->ComponentVelocity += FVector::UpVector * 250000.0f;
+
+
+	//UWheeledVehicleMovementComponent4W* Vehicle4W = CastChecked<UWheeledVehicleMovementComponent4W>(this->GetVehicleMovement());
+	//Vehicle4W->Velocity += FVector::UpVector * 250000.0f;
+	
+
+	//Vehicle4W->AddRadialImpulse(this->GetActorLocation(), 10.0f, 10000.0f, ERadialImpulseFalloff::RIF_Linear, true);
+	//Vehicle4W->AddRadialForce(this->GetActorLocation(), 10.0f, 100000.0f, ERadialImpulseFalloff::RIF_Linear);
+
+	//this->GetVehicleMovementComponent()->Velocity += FVector::UpVector * 250000.0f;
+
+	UPrimitiveComponent* PhysicalComp = this->FindComponentByClass<UPrimitiveComponent>();
+	
+	FVector impulseLocation = this->GetActorLocation() + (this->GetActorRightVector() * 10.0f);
+
+	FVector upforce = this->GetActorUpVector();
+	float dot		= FVector::DotProduct(this->GetActorUpVector(), FVector::UpVector);
+
+	if (dot < 0.0f)
 	{
-		GEngine->HMDDevice->ResetOrientationAndPosition();
-		InternalCamera->SetRelativeLocation(InternalCameraOrigin);
-		GetController()->SetControlRotation(FRotator());
+		upforce *= -1.0f;
 	}
-#endif // HMD_MODULE_INCLUDED
+
+	PhysicalComp->AddImpulseAtLocation(upforce * 300.0f * PhysicalComp->GetMass(), impulseLocation, "None");
+	//PhysicalComp->AddImpulse(FVector::UpVector * 250.0f, "", true);
+
+
 }
 
 void ATP_VehicleAdvPawn::UpdateHUDStrings()

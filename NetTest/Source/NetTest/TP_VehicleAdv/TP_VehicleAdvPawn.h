@@ -13,6 +13,8 @@ class UInputComponent;
 UCLASS(config=Game)
 class ATP_VehicleAdvPawn : public AWheeledVehicle
 {
+	static bool hasCalledConnect;
+
 	GENERATED_BODY()
 
 	/** Spring arm that will offset the camera */
