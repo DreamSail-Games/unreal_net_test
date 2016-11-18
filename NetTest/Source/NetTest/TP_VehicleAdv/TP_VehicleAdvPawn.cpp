@@ -376,7 +376,7 @@ void ATP_VehicleAdvPawn::Tick(float Delta)
 void ATP_VehicleAdvPawn::BeginPlay()
 {
 
-	//ListServers();
+	ListServers();
 
 	Super::BeginPlay();
 
