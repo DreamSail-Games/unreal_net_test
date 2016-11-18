@@ -398,39 +398,52 @@ void ATP_VehicleAdvPawn::BeginPlay()
 
 void ATP_VehicleAdvPawn::OnResetVR()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("reset! 14")));
 
-
-
-	//this->GetVehicleMovementComponent()->UpdatedComponent->ComponentVelocity += FVector::UpVector * 250000.0f;
-
-
-	//UWheeledVehicleMovementComponent4W* Vehicle4W = CastChecked<UWheeledVehicleMovementComponent4W>(this->GetVehicleMovement());
-	//Vehicle4W->Velocity += FVector::UpVector * 250000.0f;
-	
-
-	//Vehicle4W->AddRadialImpulse(this->GetActorLocation(), 10.0f, 10000.0f, ERadialImpulseFalloff::RIF_Linear, true);
-	//Vehicle4W->AddRadialForce(this->GetActorLocation(), 10.0f, 100000.0f, ERadialImpulseFalloff::RIF_Linear);
-
-	//this->GetVehicleMovementComponent()->Velocity += FVector::UpVector * 250000.0f;
-
-	UPrimitiveComponent* PhysicalComp = this->FindComponentByClass<UPrimitiveComponent>();
-	
-	FVector impulseLocation = this->GetActorLocation() + (this->GetActorRightVector() * 10.0f);
-
-	FVector upforce = this->GetActorUpVector();
-	float dot		= FVector::DotProduct(this->GetActorUpVector(), FVector::UpVector);
-
-	if (dot < 0.0f)
-	{
-		upforce *= -1.0f;
-	}
-
-	PhysicalComp->AddImpulseAtLocation(upforce * 300.0f * PhysicalComp->GetMass(), impulseLocation, "None");
-	//PhysicalComp->AddImpulse(FVector::UpVector * 250.0f, "", true);
-
-
+	AddFlipForce();
 }
+
+void ATP_VehicleAdvPawn::AddFlipForce_Implementation()
+{
+	if (Role == ROLE_Authority)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Blue, FString(TEXT("reset! 14")));
+
+
+
+		//this->GetVehicleMovementComponent()->UpdatedComponent->ComponentVelocity += FVector::UpVector * 250000.0f;
+
+
+		//UWheeledVehicleMovementComponent4W* Vehicle4W = CastChecked<UWheeledVehicleMovementComponent4W>(this->GetVehicleMovement());
+		//Vehicle4W->Velocity += FVector::UpVector * 250000.0f;
+
+
+		//Vehicle4W->AddRadialImpulse(this->GetActorLocation(), 10.0f, 10000.0f, ERadialImpulseFalloff::RIF_Linear, true);
+		//Vehicle4W->AddRadialForce(this->GetActorLocation(), 10.0f, 100000.0f, ERadialImpulseFalloff::RIF_Linear);
+
+		//this->GetVehicleMovementComponent()->Velocity += FVector::UpVector * 250000.0f;
+
+		UPrimitiveComponent* PhysicalComp = this->FindComponentByClass<UPrimitiveComponent>();
+
+		FVector impulseLocation = this->GetActorLocation() + (this->GetActorRightVector() * 10.0f);
+
+		FVector upforce = this->GetActorUpVector();
+		float dot = FVector::DotProduct(this->GetActorUpVector(), FVector::UpVector);
+
+		if (dot < 0.0f)
+		{
+			upforce *= -1.0f;
+		}
+
+		PhysicalComp->AddImpulseAtLocation(upforce * 300.0f * PhysicalComp->GetMass(), impulseLocation, "None");
+		//PhysicalComp->AddImpulse(FVector::UpVector * 250.0f, "", true);
+	}
+}
+
+bool ATP_VehicleAdvPawn::AddFlipForce_Validate()
+{
+	return true;
+}
+
 
 void ATP_VehicleAdvPawn::UpdateHUDStrings()
 {

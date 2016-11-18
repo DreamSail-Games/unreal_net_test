@@ -53,6 +53,9 @@ public:
 	void OnHttpRequestReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 	void ConnectToServerWithIP(FString ipAddr);
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void AddFlipForce();
+
 	ATP_VehicleAdvPawn();
 
 	/** The current speed as a string eg 10 km/h */
